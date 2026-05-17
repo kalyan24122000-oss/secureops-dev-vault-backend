@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Panel - SecureOps Vault</title>
+  <style>
+    body { font-family: 'Inter', sans-serif; background: #060d19; color: #e2e8f0; margin: 0; padding: 20px; }
+    #login-screen, #dashboard { display: none; }
+    #login-screen.active, #dashboard.active { display: block; }
+    .container { max-width: 1000px; margin: 0 auto; }
+    .card { background: #111d35; padding: 20px; border-radius: 12px; border: 1px solid #1a2a48; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+    h2 { color: #2dd4bf; margin-top: 0; border-bottom: 1px solid #1a2a48; padding-bottom: 10px; }
+    input[type="password"], input[type="text"] { width: 100%; box-sizing: border-box; padding: 12px; margin-bottom: 15px; background: #0d1628; border: 1px solid #1a2a48; color: #fff; border-radius: 6px; font-family: monospace; }
+    button { padding: 10px 20px; background: linear-gradient(135deg, #2dd4bf, #6366f1); color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; transition: opacity 0.2s; }
+    button:hover { opacity: 0.9; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px; }
+    th, td { padding: 12px; border-bottom: 1px solid #1a2a48; text-align: left; }
+    th { color: #818cf8; text-transform: uppercase; letter-spacing: 1px; font-size: 11px; }
+    tr:hover { background: #0d1628; }
+    .badge { padding: 4px 8px; border-radius: 4px; background: #1e293b; color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+    pre { background: #0d1628; padding: 15px; border-radius: 6px; overflow-x: auto; color: #a855f7; border: 1px solid #1a2a48; font-size: 13px; }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+    .hash-text { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #64748b; }
+    .key-text { color: #ef4444; font-family: monospace; max-width: 250px; word-break: break-all; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div id="login-screen" class="active card" style="max-width: 400px; margin: 100px auto; text-align: center;">
+      <h2>🛡️ Admin Login</h2>
+      <p style="color: #94a3b8; font-size: 14px; margin-bottom: 20px;">SecureOps Dev Vault Admin Panel</p>
+      <input type="password" id="admin-pass" placeholder="Enter Admin Password">
+      <button onclick="login()" style="width: 100%;">Access Panel</button>
+    </div>
+
+    <div id="dashboard" class="card">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2>👥 Users List</h2>
+        <button onclick="fetchUsers()">Refresh Data</button>
+      </div>
+      <div style="overflow-x: auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Email</th>
+              <th>Password Hash</th>
+              <th>Private Key</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="users-tbody"></tbody>
+        </table>
+      </div>
+
+      <hr style="border-color:#1a2a48; margin: 40px 0;">
+
+      <h2>🔓 Decryption Panel</h2>
+      <p style="color: #94a3b8; font-size: 13px; margin-bottom: 20px;">Use this to recover a user's vault data if they lost their account access.</p>
+      <div style="display: flex; gap: 10px;">
+        <input type="text" id="decrypt-user-id" placeholder="User ID">
+        <input type="text" id="decrypt-private-key" placeholder="Private Key (Secret)">
+      </div>
+      <button onclick="decryptData()">Decrypt & View Vault Data</button>
+      
+      <div id="decrypted-results" style="margin-top: 30px;"></div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = "http://localhost:8080/admin";
+    let adminPass = "";
+
+    function login() {
+      const pass = document.getElementById("admin-pass").value;
+      if (pass === "2010") {
+        adminPass = pass;
+        document.getElementById("login-screen").classList.remove("active");
+        document.getElementById("dashboard").classList.add("active");
+        fetchUsers();
+      } else {
+        alert("Incorrect password! Access denied.");
+      }
+    }
+
+    async function fetchUsers() {
+      try {
+        const res = await fetch(`${API_URL}/users`, {
+          headers: { "x-admin-password": adminPass }
+        });
+        if (!res.ok) {
+            if (res.status === 401) {
+                alert("Session expired or invalid password.");
+                location.reload();
+                return;
+            }
+            throw new Error("Failed to fetch users");
+        }
+        const data = await res.json();
+        const tbody = document.getElementById("users-tbody");
+        tbody.innerHTML = "";
+        data.users.forEach(u => {
+          const keyDisplay = u.private_key ? u.private_key : '<span style="color:#64748b">Not Stored</span>';
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td style="font-family: monospace; font-size: 11px; color:#94a3b8;">${u.id}</td>
+            <td style="font-weight: 500;">${u.email}</td>
+            <td class="hash-text" title="${u.password_hash}">${u.password_hash}</td>
+            <td class="key-text">${keyDisplay}</td>
+            <td><button class="btn-sm" onclick="fillDecrypt('${u.id}', '${u.private_key || ''}')">Decrypt</button></td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    function fillDecrypt(id, key) {
+      document.getElementById("decrypt-user-id").value = id;
+      document.getElementById("decrypt-private-key").value = key;
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }
+
+    async function decryptData() {
+      const userId = document.getElementById("decrypt-user-id").value;
+      const privateKey = document.getElementById("decrypt-private-key").value;
+      if (!userId || !privateKey) return alert("Fill both User ID and Private Key");
+
+      const resultsDiv = document.getElementById("decrypted-results");
+      resultsDiv.innerHTML = "<p style='color: #2dd4bf;'>Decrypting...</p>";
+
+      try {
+        const res = await fetch(`${API_URL}/decrypt`, {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            "x-admin-password": adminPass 
+          },
+          body: JSON.stringify({ userId, privateKey })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || "Failed to decrypt");
+        
+        resultsDiv.innerHTML = "<h3 style='color:#e2e8f0; margin-bottom: 20px;'>Saved Credentials</h3>";
+        if (data.items.length === 0) {
+          resultsDiv.innerHTML += "<p style='color:#94a3b8;'>No items found in this user's vault.</p>";
+          return;
+        }
+        data.items.forEach(item => {
+          resultsDiv.innerHTML += `
+            <div style="background: #1e293b; padding: 20px; margin-bottom: 15px; border-radius: 8px; border-left: 4px solid #2dd4bf;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
+                <h4 style="margin:0; color: #fff;">${item.title} <span style="color:#94a3b8; font-weight:normal;">${item.subtitle ? '- ' + item.subtitle : ''}</span></h4>
+                <span class="badge">${item.itemType}</span>
+              </div>
+              ${item.error ? `<p style="color:#ef4444; margin:0;">❌ ${item.error}</p>` : `<pre style="margin:0;">${JSON.stringify(item.data, null, 2)}</pre>`}
+            </div>
+          `;
+        });
+      } catch (err) {
+        resultsDiv.innerHTML = "";
+        alert(err.message);
+      }
+    }
+  </script>
+</body>
+</html>
