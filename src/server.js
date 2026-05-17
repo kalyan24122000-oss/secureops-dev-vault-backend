@@ -19,6 +19,10 @@ app.use(cors({ origin: env.corsOrigin }));
 app.use(express.json({ limit: "512kb" }));
 app.use(rateLimit({ windowMs: 60 * 1000, limit: 120 }));
 
+app.get("/", (_req, res) => {
+  res.sendFile(path.join(__dirname, "../admin.html"));
+});
+
 app.get("/health", (_req, res) => res.json({ status: "ok" }));
 app.use("/auth", authRoutes);
 app.use("/vault", requireAuth, vaultRoutes);
