@@ -79,12 +79,16 @@ router.post("/login", async (req, res, next) => {
   try {
     const email = normalizeEmail(req.body.email);
     const password = req.body.password || "";
-    const result = await db.query("SELECT id, email, password_hash FROM users WHERE email = $1", [email]);
+    const result = await db.query("SELECT id, email, password_hash, private_key FROM users WHERE email = $1", [email]);
     const user = result.rows[0];
     if (!user || !(await bcrypt.compare(password, user.password_hash))) {
       return res.status(401).json({ message: "Invalid email or password." });
     }
-    return res.json({ token: issueToken(user), user: { id: user.id, email: user.email } });
+    return res.json({ 
+      token: issueToken(user), 
+      user: { id: user.id, email: user.email },
+      privateKey: user.private_key
+    });
   } catch (error) {
     return next(error);
   }
