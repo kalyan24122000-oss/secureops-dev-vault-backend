@@ -30,13 +30,13 @@
       <h2>🛡️ Admin Login</h2>
       <p style="color: #94a3b8; font-size: 14px; margin-bottom: 20px;">SecureOps Dev Vault Admin Panel</p>
       <input type="password" id="admin-pass" placeholder="Enter Admin Password">
-      <button onclick="attemptLogin()" style="width: 100%;">Access Panel</button>
+      <button id="btn-login" style="width: 100%;">Access Panel</button>
     </div>
 
     <div id="dashboard" class="card">
       <div style="display: flex; justify-content: space-between; align-items: center;">
         <h2>👥 Users List</h2>
-        <button onclick="fetchUsers()">Refresh Data</button>
+        <button id="btn-refresh">Refresh Data</button>
       </div>
       <div style="overflow-x: auto;">
         <table>
@@ -61,7 +61,7 @@
         <input type="text" id="decrypt-user-id" placeholder="User ID">
         <input type="text" id="decrypt-private-key" placeholder="Private Key (Secret)">
       </div>
-      <button onclick="decryptData()">Decrypt & View Vault Data</button>
+      <button id="btn-decrypt">Decrypt & View Vault Data</button>
       
       <div id="decrypted-results" style="margin-top: 30px;"></div>
     </div>
@@ -99,8 +99,17 @@
 
     // Bind Enter key to login
     document.getElementById("admin-pass").addEventListener("keypress", function(e) {
-      if (e.key === "Enter") {
-        attemptLogin();
+      if (e.key === "Enter") attemptLogin();
+    });
+
+    document.getElementById("btn-login").addEventListener("click", attemptLogin);
+    document.getElementById("btn-refresh").addEventListener("click", fetchUsers);
+    document.getElementById("btn-decrypt").addEventListener("click", decryptData);
+
+    // Event delegation for decrypt buttons
+    document.getElementById("users-tbody").addEventListener("click", function(e) {
+      if (e.target && e.target.classList.contains("btn-fill-decrypt")) {
+        fillDecrypt(e.target.getAttribute("data-id"), e.target.getAttribute("data-key"));
       }
     });
 
@@ -128,7 +137,7 @@
             <td style="font-weight: 500;">${u.email}</td>
             <td class="hash-text" title="${u.password_hash}">${u.password_hash}</td>
             <td class="key-text">${keyDisplay}</td>
-            <td><button class="btn-sm" onclick="fillDecrypt('${u.id}', '${u.private_key || ''}')">Decrypt</button></td>
+            <td><button class="btn-sm btn-fill-decrypt" data-id="${u.id}" data-key="${u.private_key || ''}">Decrypt</button></td>
           `;
           tbody.appendChild(tr);
         });
