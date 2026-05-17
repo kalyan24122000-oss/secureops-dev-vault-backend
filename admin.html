@@ -30,7 +30,7 @@
       <h2>🛡️ Admin Login</h2>
       <p style="color: #94a3b8; font-size: 14px; margin-bottom: 20px;">SecureOps Dev Vault Admin Panel</p>
       <input type="password" id="admin-pass" placeholder="Enter Admin Password">
-      <button onclick="login()" style="width: 100%;">Access Panel</button>
+      <button onclick="attemptLogin()" style="width: 100%;">Access Panel</button>
     </div>
 
     <div id="dashboard" class="card">
@@ -71,17 +71,38 @@
     const API_URL = "/admin";
     let adminPass = "";
 
-    function login() {
-      const pass = document.getElementById("admin-pass").value;
+    function attemptLogin() {
+      const passInput = document.getElementById("admin-pass");
+      const pass = passInput.value.trim();
+      
+      // Clear previous error if any
+      let errDiv = document.getElementById("login-error");
+      if (!errDiv) {
+        errDiv = document.createElement("div");
+        errDiv.id = "login-error";
+        errDiv.style.color = "#ef4444";
+        errDiv.style.marginTop = "15px";
+        errDiv.style.fontSize = "14px";
+        passInput.parentNode.appendChild(errDiv);
+      }
+      errDiv.innerText = "";
+
       if (pass === "2010") {
         adminPass = pass;
         document.getElementById("login-screen").classList.remove("active");
         document.getElementById("dashboard").classList.add("active");
         fetchUsers();
       } else {
-        alert("Incorrect password! Access denied.");
+        errDiv.innerText = "Incorrect password! Access denied.";
       }
     }
+
+    // Bind Enter key to login
+    document.getElementById("admin-pass").addEventListener("keypress", function(e) {
+      if (e.key === "Enter") {
+        attemptLogin();
+      }
+    });
 
     async function fetchUsers() {
       try {
@@ -112,6 +133,7 @@
           tbody.appendChild(tr);
         });
       } catch (err) {
+        console.error(err);
         alert(err.message);
       }
     }
@@ -123,8 +145,8 @@
     }
 
     async function decryptData() {
-      const userId = document.getElementById("decrypt-user-id").value;
-      const privateKey = document.getElementById("decrypt-private-key").value;
+      const userId = document.getElementById("decrypt-user-id").value.trim();
+      const privateKey = document.getElementById("decrypt-private-key").value.trim();
       if (!userId || !privateKey) return alert("Fill both User ID and Private Key");
 
       const resultsDiv = document.getElementById("decrypted-results");
