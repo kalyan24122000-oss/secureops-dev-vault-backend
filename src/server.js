@@ -23,6 +23,10 @@ app.get("/", (_req, res) => {
   res.sendFile(path.join(__dirname, "../admin.html"));
 });
 
+app.get("/admin.js", (_req, res) => {
+  res.sendFile(path.join(__dirname, "../admin.js"));
+});
+
 app.get("/health", (_req, res) => res.json({ status: "ok" }));
 app.use("/auth", authRoutes);
 app.use("/vault", requireAuth, vaultRoutes);
